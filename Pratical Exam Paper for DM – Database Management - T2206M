@@ -1,0 +1,157 @@
+USE master
+GO
+--Create structure of database
+IF EXISTS (SELECT * FROM sys.databases WHERE Name='A_Zbank')
+DROP DATABASE A_Zbank
+GO
+
+--1. Create database named AZBank.
+CREATE DATABASE A_Zbank
+GO
+USE A_Zbank
+GO
+
+--2. In the AZBank database, create tables with constraints as design.
+CREATE TABLE Customer (
+		CustomerId INT PRIMARY KEY NOT NULL,
+		Name NVARCHAR(50) NULL,
+		City NVARCHAR(50) NULL,
+		Country NVARCHAR(50) NULL, 
+		Phone NVARCHAR(15) NULL,
+		Email NVARCHAR(50) NULL
+)
+GO
+
+
+CREATE TABLE CustomerAccount (
+	AccountNumber CHAR(9) PRIMARY KEY NOT NULL,
+	CustomerId INT FOREIGN KEY REFERENCES dbo.Customer(CustomerID) NOT NULL,
+	Balance MONEY NOT NULL,
+	MinAccount MONEY NULL 
+)
+GO
+
+
+CREATE TABLE CustomerTransaction (
+	TransactionId INT PRIMARY KEY NOT NULL,
+	AccountNumber CHAR(9) FOREIGN KEY REFERENCES dbo.CustomerAccount(AccountNumber) NULL,
+	TransactionDate SMALLDATETIME NULL,
+	Amount MONEY NULL,
+	DepositorWithdraw BIT NULL 
+)
+GO
+
+--3. Insert into each table at least 3 records.
+INSERT INTO dbo.Customer
+(
+    CustomerID,
+    Name,
+    City,
+    Country,
+    Phone,
+    Email
+)
+VALUES
+(   1,
+    N'Nguyễn Hương Nhung',
+    N'Hà Nội',
+    N'Việt Nam',
+    '0904567899',
+    N'nhungnhth2207010@fpt.edu.vn'
+    ),
+(   2,
+    N'Lưu Bá Tước',
+    N'Hà Nội',
+    N'Việt Nam',
+    '0973330222',
+    N'luubatuoc@gmail.com'
+    ),
+(   3,
+    N'Phạm Thị Thanh',
+    N'Hà Nội',
+    N'Việt Nam',
+    N'0904373737',
+    N'phamthanh@yahoo.com'
+    )
+GO
+
+INSERT INTO dbo.CustomerAccount
+(
+    AccountNumber,
+    CustomerID,
+    Balance,
+    MinAccount
+)
+VALUES
+(   '232316809',
+    1,
+    8000000,
+    800000000
+    ),
+(   '222286666',
+    2,
+    200000000,
+    9000000000
+    ),
+(   '999999999',
+    3,
+    60000000,
+    3000000000
+    )
+GO
+
+INSERT INTO dbo.CustomerTransaction
+(
+    TransactionID,
+    AccountNumber,
+    TransactionDate,
+    Amount,
+    DepositorWithdraw
+)
+VALUES
+(   1,
+    '232316809',
+    '20220930',
+    500000,
+    50000000
+    ),
+(   2,
+    '222286666',
+    '20221020',
+    3000000,
+    60000000
+    ),
+(   3,
+    '999999999',
+    '20221025',
+    1000000,
+    60000000
+    )
+GO
+
+--4 Write a query to get all customers from Customer table who live in 'Hanoi'.
+SELECT * FROM dbo.Customer 
+WHERE City LIKE  N'Hà Nội'
+
+--5  Write a query to get account information of the customers (Name, Phone, Email, AccountNumber, Balance).
+SELECT Name,Phone, Email, AccountNumber,Balance FROM dbo.Customer
+JOIN dbo.CustomerAccount 
+ON CustomerAccount.CustomerId = Customer.CustomerId 
+
+--6  A-Z bank has a business rule that each transaction (withdrawal or deposit) won't beover $1000000 (One million USDS).
+--Create a CHECK constraint on Amount column of CustomerTransaction table to check that each transaction amount is greater than 0 and less than or equal $1000000.
+ALTER TABLE CustomerTransaction
+ADD CONSTRAINT CK_Checkwithdrawal
+CHECK (DepositorWithdraw > 0 and DepositorWithdraw <= 1000000)
+
+--7. Create a view named vCustomerTransactions that display Name, AccountNumber, TransactionDate, Amount, and DepositorWithdraw from Customer, CustomerAccount and CustomerTransaction tables.
+CREATE VIEW vCustomerTransactions
+AS
+SELECT Name, CustomerAccount.AccountNumber, TransactionDate, Amount , CustomerTransaction.DepositorWithdraw
+FROM dbo.Customer
+JOIN dbo.CustomerAccount
+ON CustomerAccount.CustomerID = Customer.CustomerID
+JOIN dbo.CustomerTransaction
+ON CustomerTransaction.AccountNumber = CustomerAccount.AccountNumber
+
+SELECT * FROM vCustomerTransactions
